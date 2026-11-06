@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Filters that build a per-task report from AAP job events.
 
 The report does not know the target playbook's tasks in advance: it derives
