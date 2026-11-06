@@ -1,0 +1,59 @@
+---
+argument_specs:
+  main:
+    short_description: Run an AAP Job Template and email a per-task report
+    options:
+      job_report_target_template:
+        type: str
+        required: true
+        description: Name or ID of the Job Template to run.
+      job_report_target_organization:
+        type: str
+      job_report_target_extra_vars:
+        type: dict
+      job_report_target_limit:
+        type: str
+      job_report_target_tags:
+        type: str
+      job_report_timeout:
+        type: int
+      job_report_poll_interval:
+        type: int
+      job_report_event_wait_retries:
+        type: int
+      job_report_event_wait_delay:
+        type: int
+      job_report_max_events:
+        type: int
+      job_report_include_gather_facts:
+        type: bool
+      job_report_ignored_as_failed:
+        type: bool
+      job_report_max_msg_len:
+        type: int
+      job_report_include_error_messages:
+        type: bool
+      job_report_controller_url:
+        type: str
+      job_report_job_url_path:
+        type: str
+      job_report_smtp_host:
+        type: str
+        required: true
+        description: SMTP server host name or IP (no authentication).
+      job_report_smtp_port:
+        type: int
+      job_report_mail_from:
+        type: str
+        required: true
+        description: Sender address.
+      job_report_mail_to:
+        type: list
+        elements: str
+        required: true
+        description: Recipient addresses.
+      job_report_mail_subject:
+        type: str
+        description: Custom subject. Empty = automatic subject.
+      job_report_fail_on_target_failure:
+        type: bool

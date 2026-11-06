@@ -1,0 +1,51 @@
+---
+- name: Fetch task events of job {{ _jr_job.id }}
+  ansible.builtin.set_fact:
+    _jr_events: >-
+      {{ lookup('ansible.controller.controller_api',
+                'jobs/' ~ _jr_job.id ~ '/job_events/',
+                query_params={
+                  'event__in': (none | job_report_event_types | join(',')),
+                  'order_by': 'counter',
+                  'page_size': 200
+                },
+                return_all=true,
+                max_objects=job_report_max_events | int)
+         | job_report_as_list }}
+
+- name: Fetch host summaries of job {{ _jr_job.id }}
+  ansible.builtin.set_fact:
+    _jr_host_summaries: >-
+      {{ lookup('ansible.controller.controller_api',
+                'jobs/' ~ _jr_job.id ~ '/job_host_summaries/',
+                query_params={'order_by': 'host_name', 'page_size': 200},
+                return_all=true,
+                max_objects=job_report_max_events | int)
+         | job_report_as_list }}
+
+- name: Build per-task report
+  ansible.builtin.set_fact:
+    _jr_report: >-
+      {{ _jr_events | job_report_tasks(
+           ignored_as_failed=job_report_ignored_as_failed | bool,
+           include_gather_facts=job_report_include_gather_facts | bool,
+           max_msg_len=job_report_max_msg_len | int) }}
+    _jr_job_url: >-
+      {{ (job_report_controller_url ~ job_report_job_url_path | replace('{id}', _jr_job.id | string))
+         if job_report_controller_url | length > 0 else '' }}
+
+- name: Show report summary in job output
+  ansible.builtin.debug:
+    msg:
+      - "Job {{ _jr_job.id }} ({{ _jr_job.name }}): {{ _jr_job.status }}"
+      - "Task: {{ _jr_report.summary.total }} | Success: {{ _jr_report.summary.success }} | Failed: {{ _jr_report.summary.failed }}"
+      - "{{ _jr_report.tasks | map(attribute='outcome') | zip(_jr_report.tasks | map(attribute='display_name')) | map('join', '  ') | list }}"
+
+- name: Publish report summary as job artifact
+  ansible.builtin.set_stats:
+    data:
+      job_report:
+        target_job_id: "{{ _jr_job.id }}"
+        target_status: "{{ _jr_job.status }}"
+        summary: "{{ _jr_report.summary }}"
+    per_host: false

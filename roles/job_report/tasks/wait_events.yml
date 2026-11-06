@@ -1,0 +1,10 @@
+---
+- name: Pause before re-checking event processing
+  ansible.builtin.pause:
+    seconds: "{{ job_report_event_wait_delay | int }}"
+  when: not (_jr_job.event_processing_finished | default(false) | bool)
+
+- name: Refresh target job details
+  ansible.builtin.set_fact:
+    _jr_job: "{{ lookup('ansible.controller.controller_api', 'jobs/' ~ _jr_launch.id ~ '/') }}"
+  when: not (_jr_job.event_processing_finished | default(false) | bool)

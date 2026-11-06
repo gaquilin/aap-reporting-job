@@ -1,0 +1,31 @@
+---
+- name: Validate required inputs
+  ansible.builtin.assert:
+    that:
+      - job_report_target_template | string | length > 0
+      - job_report_smtp_host | length > 0
+      - job_report_mail_from | length > 0
+      - job_report_mail_to | length > 0
+    fail_msg: >-
+      job_report_target_template, job_report_smtp_host, job_report_mail_from
+      and job_report_mail_to are required.
+    quiet: true
+
+- name: Launch target job and wait for completion
+  ansible.builtin.import_tasks: launch.yml
+
+- name: Collect job events and build the report
+  ansible.builtin.import_tasks: collect.yml
+
+- name: Send report by email
+  ansible.builtin.import_tasks: notify.yml
+
+- name: Fail if the target job did not succeed
+  ansible.builtin.fail:
+    msg: >-
+      Target job {{ _jr_job.id }} ({{ job_report_target_template }}) finished
+      with status '{{ _jr_job.status }}'
+      ({{ _jr_report.summary.failed }} task(s) Failed). Report sent.
+  when:
+    - job_report_fail_on_target_failure | bool
+    - _jr_job.status != 'successful'

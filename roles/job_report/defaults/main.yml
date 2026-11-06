@@ -1,0 +1,29 @@
+---
+job_report_target_template: ""
+job_report_target_organization: ""
+job_report_target_extra_vars: {}
+job_report_target_limit: ""
+job_report_target_tags: ""
+
+job_report_timeout: 7200
+job_report_poll_interval: 15
+
+job_report_event_wait_retries: 24
+job_report_event_wait_delay: 5
+job_report_max_events: 100000
+
+job_report_include_gather_facts: true
+job_report_ignored_as_failed: false
+job_report_max_msg_len: 300
+job_report_include_error_messages: true
+
+job_report_controller_url: "{{ lookup('ansible.builtin.env', 'CONTROLLER_HOST') | default('', true) | regex_replace('/+$', '') }}"
+job_report_job_url_path: "/execution/jobs/playbook/{id}/output"
+
+job_report_smtp_host: ""
+job_report_smtp_port: 25
+job_report_mail_from: ""
+job_report_mail_to: []
+job_report_mail_subject: ""
+
+job_report_fail_on_target_failure: true

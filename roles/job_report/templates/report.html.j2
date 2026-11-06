@@ -1,0 +1,112 @@
+{#- HTML report for email clients: tables and inline styles only. -#}
+{%- set job = _jr_job -%}
+{%- set rep = _jr_report -%}
+{%- set ok_job = job.status == 'successful' -%}
+{%- set c_ok = '#1e7d32' -%}{%- set c_ko = '#c62828' -%}{%- set c_muted = '#6b7280' -%}
+{%- set elapsed = (job.elapsed | default(0) | float) | int -%}
+{%- macro ts(value) -%}{{ (value | default('', true) | string)[:19] | replace('T', ' ') ~ (' UTC' if value else '-') }}{%- endmacro -%}
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Job {{ job.id }} report</title></head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:Segoe UI,Arial,Helvetica,sans-serif;color:#111827;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:24px 0;">
+<tr><td align="center">
+<table role="presentation" width="900" cellpadding="0" cellspacing="0" style="max-width:900px;width:100%;background:#ffffff;border:1px solid #e5e7eb;">
+
+  <tr><td style="padding:20px 24px;border-top:6px solid {{ c_ok if ok_job else c_ko }};">
+    <div style="font-size:12px;color:{{ c_muted }};text-transform:uppercase;letter-spacing:1px;">Ansible Automation Platform &middot; Job report</div>
+    <div style="font-size:22px;font-weight:600;margin-top:4px;">{{ job.name | e }}</div>
+    <div style="margin-top:8px;font-size:14px;">
+      Job status:
+      <span style="display:inline-block;padding:2px 10px;border-radius:10px;color:#fff;background:{{ c_ok if ok_job else c_ko }};font-weight:600;">{{ job.status | upper }}</span>
+      {% if _jr_job_url %}&nbsp;<a href="{{ _jr_job_url }}" style="color:#1d4ed8;">Open job {{ job.id }} in AAP</a>{% endif %}
+    </div>
+  </td></tr>
+
+  <tr><td style="padding:0 24px 16px 24px;">
+    <table role="presentation" width="100%" cellpadding="6" cellspacing="0" style="font-size:13px;border-collapse:collapse;">
+      <tr>
+        <td style="color:{{ c_muted }};width:140px;">Job ID</td><td>{{ job.id }}</td>
+        <td style="color:{{ c_muted }};width:140px;">Inventory</td><td>{{ job.summary_fields.inventory.name | default('-') | e }}</td>
+      </tr>
+      <tr>
+        <td style="color:{{ c_muted }};">Started</td><td>{{ ts(job.started) }}</td>
+        <td style="color:{{ c_muted }};">Finished</td><td>{{ ts(job.finished) }}</td>
+      </tr>
+      <tr>
+        <td style="color:{{ c_muted }};">Duration</td><td>{{ '%dm %02ds' | format(elapsed // 60, elapsed % 60) }}</td>
+        <td style="color:{{ c_muted }};">Playbook</td><td>{{ job.playbook | default('-') | e }}</td>
+      </tr>
+      {% if job.job_explanation | default('') %}
+      <tr><td style="color:{{ c_muted }};">Notes</td><td colspan="3">{{ job.job_explanation | e }}</td></tr>
+      {% endif %}
+    </table>
+  </td></tr>
+
+  <tr><td style="padding:0 24px 16px 24px;">
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%"><tr>
+      <td width="33%" style="padding:12px;background:#f9fafb;border:1px solid #e5e7eb;text-align:center;">
+        <div style="font-size:26px;font-weight:700;">{{ rep.summary.total }}</div><div style="font-size:12px;color:{{ c_muted }};">Tasks executed</div></td>
+      <td width="33%" style="padding:12px;background:#f9fafb;border:1px solid #e5e7eb;text-align:center;">
+        <div style="font-size:26px;font-weight:700;color:{{ c_ok }};">{{ rep.summary.success }}</div><div style="font-size:12px;color:{{ c_muted }};">Success</div></td>
+      <td width="33%" style="padding:12px;background:#f9fafb;border:1px solid #e5e7eb;text-align:center;">
+        <div style="font-size:26px;font-weight:700;color:{{ c_ko if rep.summary.failed else c_muted }};">{{ rep.summary.failed }}</div><div style="font-size:12px;color:{{ c_muted }};">Failed</div></td>
+    </tr></table>
+  </td></tr>
+
+  <tr><td style="padding:0 24px 8px 24px;font-size:16px;font-weight:600;">Executed tasks</td></tr>
+  <tr><td style="padding:0 24px 20px 24px;">
+    <table width="100%" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-size:12px;">
+      <tr style="background:#111827;color:#ffffff;text-align:left;">
+        <th style="width:28px;">#</th><th>Play</th><th>Task</th><th style="width:70px;">Outcome</th>
+        <th style="width:150px;">Host ok / chg / fail / skip / unr</th>
+        {% if job_report_include_error_messages | bool %}<th>Details</th>{% endif %}
+      </tr>
+      {% set ns = namespace(play='') %}
+      {% for t in rep.tasks %}
+      {% set failed = t.outcome == 'Failed' %}
+      <tr style="background:{{ '#fdecea' if failed else ('#ffffff' if loop.index is odd else '#f9fafb') }};border-bottom:1px solid #e5e7eb;vertical-align:top;">
+        <td style="color:{{ c_muted }};">{{ t.index }}</td>
+        <td style="color:{{ c_muted }};">{{ (t.play if t.play != ns.play else '') | e }}</td>
+        <td>{{ t.display_name | e }}{% if t.kind == 'handler' %} <span style="color:{{ c_muted }};">(handler)</span>{% endif %}</td>
+        <td><span style="color:#fff;background:{{ c_ko if failed else c_ok }};padding:1px 8px;border-radius:8px;font-weight:600;">{{ t.outcome }}</span></td>
+        <td style="font-family:Consolas,Menlo,monospace;">{{ t.hosts.ok }} / {{ t.hosts.changed }} / {{ t.hosts.failed }}{% if t.hosts.ignored %}+{{ t.hosts.ignored }}i{% endif %} / {{ t.hosts.skipped }} / {{ t.hosts.unreachable }}</td>
+        {% if job_report_include_error_messages | bool %}
+        <td style="color:{{ c_ko }};">{% for m in t.messages[:5] %}{{ m | e }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% if t.messages | length > 5 %}<br><span style="color:{{ c_muted }};">&hellip; {{ t.messages | length - 5 }} more</span>{% endif %}</td>
+        {% endif %}
+      </tr>
+      {% set ns.play = t.play %}
+      {% else %}
+      <tr><td colspan="6" style="padding:12px;color:{{ c_muted }};">No tasks recorded in the job events (the job may have failed before the playbook started).</td></tr>
+      {% endfor %}
+    </table>
+    <div style="font-size:11px;color:{{ c_muted }};margin-top:6px;">"i" = failure with ignore_errors. Tasks never reached (e.g. after a fatal error) are not listed because they did not run.</div>
+  </td></tr>
+
+  {% if _jr_host_summaries | length > 0 %}
+  <tr><td style="padding:0 24px 8px 24px;font-size:16px;font-weight:600;">Host summary</td></tr>
+  <tr><td style="padding:0 24px 20px 24px;">
+    <table width="100%" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-size:12px;">
+      <tr style="background:#374151;color:#ffffff;text-align:left;">
+        <th>Host</th><th>ok</th><th>changed</th><th>failed</th><th>unreachable</th><th>skipped</th><th>rescued</th><th>ignored</th>
+      </tr>
+      {% for h in _jr_host_summaries %}
+      {% set bad = (h.failures | default(0) | int) > 0 or (h.dark | default(0) | int) > 0 %}
+      <tr style="background:{{ '#fdecea' if bad else '#ffffff' }};border-bottom:1px solid #e5e7eb;">
+        <td>{{ h.host_name | e }}</td><td>{{ h.ok }}</td><td>{{ h.changed }}</td>
+        <td>{{ h.failures }}</td><td>{{ h.dark }}</td><td>{{ h.skipped }}</td>
+        <td>{{ h.rescued | default(0) }}</td><td>{{ h.ignored | default(0) }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </td></tr>
+  {% endif %}
+
+  <tr><td style="padding:12px 24px;background:#f9fafb;border-top:1px solid #e5e7eb;font-size:11px;color:{{ c_muted }};">
+    Generated automatically by AAP{% if tower_job_id is defined %} (report job {{ tower_job_id }}){% endif %}.
+  </td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>

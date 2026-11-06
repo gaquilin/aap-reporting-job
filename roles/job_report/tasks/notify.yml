@@ -1,0 +1,16 @@
+---
+- name: Send report to {{ job_report_mail_to | join(', ') }}
+  community.general.mail:
+    host: "{{ job_report_smtp_host }}"
+    port: "{{ job_report_smtp_port | int }}"
+    sender: "{{ job_report_mail_from }}"
+    to: "{{ job_report_mail_to }}"
+    subject: "{{ job_report_mail_subject if job_report_mail_subject | length > 0 else _jr_auto_subject }}"
+    body: "{{ lookup('ansible.builtin.template', 'report.html.j2') }}"
+    subtype: html
+    charset: utf-8
+  vars:
+    _jr_aap_hostname: "{{ (job_report_controller_url | ansible.builtin.urlsplit('hostname')) | default('AAP', true) }}"
+    _jr_auto_subject: >-
+      [AAP Job Report] {{ 'SUCCESS' if _jr_job.status == 'successful' else 'FAIL' }} -
+      {{ _jr_aap_hostname }} - {{ _jr_job.name }}

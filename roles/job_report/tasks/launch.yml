@@ -1,0 +1,32 @@
+---
+- name: Launch Job Template '{{ job_report_target_template }}'
+  ansible.controller.job_launch:
+    name: "{{ job_report_target_template }}"
+    organization: "{{ job_report_target_organization | default(omit, true) }}"
+    extra_vars: "{{ job_report_target_extra_vars | default(omit, true) }}"
+    limit: "{{ job_report_target_limit | default(omit, true) }}"
+    tags: "{{ job_report_target_tags | default(omit, true) }}"
+    wait: false
+  register: _jr_launch
+
+- name: Wait for job {{ _jr_launch.id }} to finish
+  ansible.controller.job_wait:
+    job_id: "{{ _jr_launch.id }}"
+    timeout: "{{ job_report_timeout | int }}"
+    interval: "{{ job_report_poll_interval | int }}"
+  register: _jr_wait
+  failed_when: false
+
+- name: Read target job details
+  ansible.builtin.set_fact:
+    _jr_job: "{{ lookup('ansible.controller.controller_api', 'jobs/' ~ _jr_launch.id ~ '/') }}"
+
+- name: Wait for event processing of job {{ _jr_launch.id }}
+  ansible.builtin.include_tasks: wait_events.yml
+  loop: "{{ range(job_report_event_wait_retries | int) | list }}"
+  loop_control:
+    loop_var: _jr_attempt
+    label: "attempt {{ _jr_attempt + 1 }}"
+  when:
+    - _jr_job.status in ['successful', 'failed', 'error', 'canceled']
+    - not (_jr_job.event_processing_finished | default(false) | bool)

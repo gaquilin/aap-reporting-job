@@ -1,0 +1,7 @@
+---
+- name: Run existing Job Template and email per-task report
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  roles:
+    - role: job_report
