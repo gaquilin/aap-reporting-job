@@ -65,12 +65,28 @@ aap-reporting-job/
 
 ### Running from AAP 2.6
 
+#### Creating the Red Hat Ansible Automation Platform Credential
+
+The automation uses this credential to launch the target Job Template and read its results through the AAP API.
+
+1. Go to **Automation Execution → Infrastructure → Credentials** and select **Create credential**.
+2. Provide the required fields:
+   - **Name**: e.g. `AAP API - Job Report`.
+   - **Organization**: the Organization that owns the Project.
+   - **Credential type**: *Red Hat Ansible Automation Platform*.
+   - **Red Hat Ansible Automation Platform**: the URL of the AAP 2.6 instance.
+   - **Username** and **Password** (or **OAuth Token**) of a user with permission to run the target Job Template.
+3. Save the credential.
+
+#### Creating the Job Template
+
 1. Go to **Automation Execution → Templates** and select **Create template → Create job template**.
 2. Provide the required fields:
    - **Name**: e.g. `Job Report - My Target Job Template`.
    - **Inventory** (the playbook runs on `localhost`).
    - **Project**: the Project pointing to this repository.
    - **Playbook**: `playbook_run_jt_report.yml`.
+   - **Credentials**: the credential created in the previous step.
 3. In **Extra variables**, provide the required variables:
 
    ```yaml
